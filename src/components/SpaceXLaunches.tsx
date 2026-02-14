@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useState } from 'react';
+import React, { useReducer, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Card, Text, Container, Title } from '@mantine/core';
 import type { SpaceXLaunch } from '../types/spacex';
@@ -7,12 +7,16 @@ type State = {
   launches: SpaceXLaunch[];
   loading: boolean;
   error: string | null;
+  selectedLaunch: SpaceXLaunch | null;
+  modalOpened: boolean;
 };
 
 type Action = 
   | { type: 'FETCH_START' }
   | { type: 'FETCH_SUCCESS'; payload: SpaceXLaunch[] }
-  | { type: 'FETCH_ERROR'; payload: string };
+  | { type: 'FETCH_ERROR'; payload: string }
+  | { type: 'OPEN_MODAL'; payload: SpaceXLaunch }
+  | { type: 'CLOSE_MODAL' };
 
 const launchesReducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -22,6 +26,10 @@ const launchesReducer = (state: State, action: Action): State => {
       return { ...state, loading: false, launches: action.payload };
     case 'FETCH_ERROR':
       return { ...state, loading: false, error: action.payload };
+    case 'OPEN_MODAL':
+      return { ...state, selectedLaunch: action.payload, modalOpened: true };
+    case 'CLOSE_MODAL':
+      return { ...state, selectedLaunch: null, modalOpened: false };
     default:
       return state;
   }
@@ -31,6 +39,8 @@ const initialState: State = {
   launches: [],
   loading: true,
   error: null,
+  selectedLaunch: null,
+  modalOpened: false,
 };
 
 const LaunchModal: React.FC<{
@@ -41,28 +51,34 @@ const LaunchModal: React.FC<{
   if (!launch) return null;
 
   return createPortal(
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: opened ? 'flex' : 'none',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-    }}>
-      <div style={{
-        background: 'white',
-        padding: '24px',
-        borderRadius: '12px',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '80vh',
-        overflowY: 'auto',
-        position: 'relative'
-      }}>
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: opened ? 'flex' : 'none',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          background: 'white',
+          padding: '24px',
+          borderRadius: '12px',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          position: 'relative'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button 
           onClick={onClose}
           style={{
@@ -82,6 +98,7 @@ const LaunchModal: React.FC<{
             justifyContent: 'center',
             zIndex: 10
           }}
+          aria-label="Закрыть"
         >
           ×
         </button>
@@ -138,8 +155,6 @@ const LaunchModal: React.FC<{
 
 const SpaceXLaunches: React.FC = () => {
   const [state, dispatch] = useReducer(launchesReducer, initialState);
-  const [selectedLaunch, setSelectedLaunch] = useState<SpaceXLaunch | null>(null);
-  const [modalOpened, setModalOpened] = useState(false);
 
   useEffect(() => {
     const fetchLaunches = async () => {
@@ -162,8 +177,11 @@ const SpaceXLaunches: React.FC = () => {
   }, []);
 
   const handleSeeMore = (launch: SpaceXLaunch) => {
-    setSelectedLaunch(launch);
-    setModalOpened(true);
+    dispatch({ type: 'OPEN_MODAL', payload: launch });
+  };
+
+  const handleCloseModal = () => {
+    dispatch({ type: 'CLOSE_MODAL' });
   };
 
   if (state.loading) {
@@ -272,9 +290,9 @@ const SpaceXLaunches: React.FC = () => {
       </Container>
 
       <LaunchModal
-        launch={selectedLaunch}
-        opened={modalOpened}
-        onClose={() => setModalOpened(false)}
+        launch={state.selectedLaunch}
+        opened={state.modalOpened}
+        onClose={handleCloseModal}
       />
     </>
   );

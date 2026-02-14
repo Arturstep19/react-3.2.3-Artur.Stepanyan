@@ -8,12 +8,12 @@ export interface SpaceXLaunch {
     rocket_type: string;
   };
   links: {
-    mission_patch: string;
-    mission_patch_small: string;
-    article_link: string;
-    wikipedia: string;
-    video_link: string;
+    mission_patch: string | null;
+    mission_patch_small: string | null;
+    article_link: string | null;
+    wikipedia: string | null;
+    video_link: string | null;
   };
-  details: string;
-  launch_success: boolean;
+  details: string | null;
+  launch_success: boolean | null;
 }
